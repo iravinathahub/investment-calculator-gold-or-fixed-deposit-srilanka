@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Investment Return Calculator - Sri Lanka</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f4f8;
+      }
+      /* Ensure canvases are responsive */
+      canvas {
+        max-width: 100%;
+        height: auto; /* Maintain aspect ratio */
+      }
+    </style>
+  </head>
+  <body
+    class="flex items-center justify-center min-h-screen p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-purple-100"
+  >
+    <div
+      class="bg-white rounded-xl shadow-lg p-6 sm:p-8 w-full max-w-2xl border border-gray-200"
+    >
+      <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
+        Investment Return Calculator (Sri Lanka)
+      </h1>
+      <p class="text-sm text-gray-600 text-center mb-6">
+        Estimate returns on Fixed Deposits and Gold based on historical average
+        rates in Sri Lanka.
+      </p>
+
+      <div class="space-y-4">
+        <div>
+          <label
+            for="investmentAmount"
+            class="block text-gray-700 text-sm font-semibold mb-2"
+          >
+            Investment Amount (LKR):
+          </label>
+          <input
+            type="number"
+            id="investmentAmount"
+            value="100000"
+            min="1000"
+            class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition duration-200 ease-in-out text-gray-800"
+            placeholder="e.g., 100000"
+          />
+        </div>
+
+        <div>
+          <label
+            for="investmentYears"
+            class="block text-gray-700 text-sm font-semibold mb-2"
+          >
+            Investment Duration (Years):
+          </label>
+          <input
+            type="number"
+            id="investmentYears"
+            value="5"
+            min="1"
+            max="30"
+            class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition duration-200 ease-in-out text-gray-800"
+            placeholder="e.g., 5"
+          />
+        </div>
+
+        <button
+          id="calculateBtn"
+          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Calculate Returns
+        </button>
+      </div>
+
+      <div id="results" class="mt-8 space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 class="text-lg font-semibold text-blue-700 mb-2">
+            Fixed Deposit (FD) Return:
+          </h3>
+          <p id="fdResult" class="text-gray-900 text-base">
+            Enter details and click Calculate.
+          </p>
+          <p class="text-xs text-blue-600 mt-2">
+            *Estimated using an average annual FD rate of 8% (compounded
+            annually).
+          </p>
+        </div>
+
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 class="text-lg font-semibold text-yellow-700 mb-2">
+            Gold Investment Return:
+          </h3>
+          <p id="goldResult" class="text-gray-900 text-base">
+            Enter details and click Calculate.
+          </p>
+          <p class="text-xs text-yellow-600 mt-2">
+            *Estimated using an average annual gold appreciation rate of 12%.
+          </p>
+        </div>
+
+        <div
+          class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-96 overflow-hidden"
+        >
+          <h3 class="text-lg font-semibold text-gray-700 mb-2">
+            Estimated Annual Gold Appreciation (LKR):
+          </h3>
+          <canvas id="goldAppreciationChart"></canvas>
+          <p class="text-xs text-gray-600 mt-2 font-bold">
+            *This chart is based on a simulated historical gold price trend for
+            illustrative purposes only, and is not derived from a specific
+            official historical dataset.
+          </p>
+        </div>
+
+        <div
+          class="bg-green-50 border border-green-200 rounded-lg p-4 max-h-96 overflow-hidden"
+        >
+          <h3 class="text-lg font-semibold text-green-700 mb-2">
+            Historical Deposit Interest Rates (Sri Lanka):
+          </h3>
+          <canvas id="interestRateChart"></canvas>
+          <p class="text-xs text-green-600 mt-2 font-bold">
+            *This chart is based on historical deposit interest rates from the
+            Central Bank of Sri Lanka and Trading Economics, with recent years
+            simulated for illustrative purposes.
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="messageBox"
+        class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+        role="alert"
+      >
+        <span id="messageText"></span>
+        <span
+          class="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer"
+          onclick="document.getElementById('messageBox').classList.add('hidden');"
+        >
+          <svg
+            class="fill-current h-6 w-6 text-red-500"
+            role="button"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+          >
+            <title>Close</title>
+            <path
+              d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.697l-2.651 2.652a1.2 1.2 0 1 1-1.697-1.697L8.303 10 5.651 7.348a1.2 1.2 0 0 1 1.697-1.697L10 8.303l2.651-2.652a1.2 1.2 0 0 1 1.697 1.697L11.697 10l2.651 2.651a1.2 1.2 0 0 1 0 1.698z"
+            />
+          </svg>
+        </span>
+      </div>
+
+      <p class="text-center text-gray-500 text-xs mt-6">
+        Created by Isuru Ravinatha
+      </p>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const investmentAmountInput =
+          document.getElementById("investmentAmount");
+        const investmentYearsInput = document.getElementById("investmentYears");
+        const calculateBtn = document.getElementById("calculateBtn");
+        const fdResult = document.getElementById("fdResult");
+        const goldResult = document.getElementById("goldResult");
+        const messageBox = document.getElementById("messageBox");
+        const messageText = document.getElementById("messageText");
+        const goldChartCanvas = document.getElementById(
+          "goldAppreciationChart"
+        );
+        const interestRateChartCanvas =
+          document.getElementById("interestRateChart");
+        let goldChartInstance = null; // To store the Chart.js instance
+        let interestRateChartInstance = null; // To store the Chart.js instance
+
+        // --- Historical Average Rates for Sri Lanka (Estimates) ---
+        const avgFdRate = 0.08; // 8% annual interest for Fixed Deposit
+        const avgGoldAppreciationRate = 0.12; // 12% annual appreciation for Gold (used in calculator, not chart data directly)
+
+        // Simulated Historical Gold Price Data (LKR per 10g) - Illustrative
+        // This data reflects a plausible upward trend in gold prices in Sri Lanka over the years.
+        // Actual historical prices may vary based on specific purity, market, and exchange rate fluctuations.
+        const historicalGoldData = [
+          { year: 2015, price: 45000 },
+          { year: 2016, price: 50000 },
+          { year: 2017, price: 58000 },
+          { year: 2018, price: 65000 },
+          { year: 2019, price: 75000 },
+          { year: 2020, price: 90000 },
+          { year: 2021, price: 120000 },
+          { year: 2022, price: 180000 },
+          { year: 2023, price: 250000 },
+          { year: 2024, price: 300000 },
+          { year: 2025, price: 350000 }, // Current estimated price
+        ];
+
+        // Historical Deposit Interest Rate Data (Sri Lanka) - Actual data with simulated recent years
+        // Source: Primarily YCharts "Sri Lanka Deposit Interest Rate" (up to 2019),
+        // with 2020-2025 simulated based on general trends observed in policy rates and other sources.
+        const historicalInterestRateData = [
+          { year: 2010, rate: 6.9 },
+          { year: 2011, rate: 6.43 },
+          { year: 2012, rate: 8.67 },
+          { year: 2013, rate: 10.23 },
+          { year: 2014, rate: 7.5 },
+          { year: 2015, rate: 5.99 },
+          { year: 2016, rate: 7.1 },
+          { year: 2017, rate: 9.0 },
+          { year: 2018, rate: 8.85 },
+          { year: 2019, rate: 8.71 },
+          { year: 2020, rate: 7.0 }, // Simulated
+          { year: 2021, rate: 4.5 }, // Simulated (reflecting low rates during pandemic)
+          { year: 2022, rate: 15.0 }, // Simulated (reflecting economic crisis high rates)
+          { year: 2023, rate: 12.0 }, // Simulated
+          { year: 2024, rate: 9.0 }, // Simulated
+          { year: 2025, rate: 8.0 }, // Simulated - current estimated average
+        ];
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} message The message to display.
+         * @param {string} type The type of message (e.g., 'error', 'info').
+         */
+        function showMessage(message, type = "error") {
+          messageText.textContent = message;
+          messageBox.classList.remove("hidden");
+          if (type === "error") {
+            messageBox.classList.remove(
+              "bg-green-100",
+              "border-green-400",
+              "text-green-700",
+              "bg-blue-100",
+              "border-blue-400",
+              "text-blue-700"
+            );
+            messageBox.classList.add(
+              "bg-red-100",
+              "border-red-400",
+              "text-red-700"
+            );
+          } else if (type === "info") {
+            messageBox.classList.remove(
+              "bg-red-100",
+              "border-red-400",
+              "text-red-700",
+              "bg-green-100",
+              "border-green-400",
+              "text-green-700"
+            );
+            messageBox.classList.add(
+              "bg-blue-100",
+              "border-blue-400",
+              "text-blue-700"
+            );
+          }
+        }
+
+        /**
+         * Calculates the maturity amount for a Fixed Deposit using compound interest.
+         * @param {number} principal - The initial investment amount.
+         * @param {number} years - The investment duration in years.
+         * @param {number} annualRate - The annual interest rate (as a decimal).
+         * @param {number} compoundingFrequency - How many times per year interest is compounded (e.g., 1 for annually).
+         * @returns {number} The total maturity amount.
+         */
+        function calculateFD(
+          principal,
+          years,
+          annualRate,
+          compoundingFrequency = 1
+        ) {
+          return (
+            principal *
+            Math.pow(
+              1 + annualRate / compoundingFrequency,
+              compoundingFrequency * years
+            )
+          );
+        }
+
+        /**
+         * Calculates the future value of a gold investment based on annual appreciation.
+         * @param {number} principal - The initial investment amount.
+         * @param {number} years - The investment duration in years.
+         * @param {number} annualAppreciation - The annual appreciation rate (as a decimal).
+         * @returns {number} The future value of the gold investment.
+         */
+        function calculateGold(principal, years, annualAppreciation) {
+          return principal * Math.pow(1 + annualAppreciation, years);
+        }
+
+        /**
+         * Calculates the annual appreciation percentage for each year in the historical gold data.
+         * @param {Array<Object>} data - Array of gold price objects with year and price.
+         * @returns {Array<Object>} Array of objects with year and annual appreciation percentage.
+         */
+        function calculateAnnualGoldAppreciation(data) {
+          const appreciationRates = [];
+          for (let i = 1; i < data.length; i++) {
+            const prevYearPrice = data[i - 1].price;
+            const currentYearPrice = data[i].price;
+            if (prevYearPrice > 0) {
+              const appreciation =
+                ((currentYearPrice - prevYearPrice) / prevYearPrice) * 100;
+              appreciationRates.push({
+                year: data[i].year,
+                rate: appreciation,
+              });
+            }
+          }
+          return appreciationRates;
+        }
+
+        /**
+         * Renders the historical gold appreciation chart.
+         * @param {Array<Object>} appreciationData - Data containing year and appreciation rate.
+         */
+        function renderGoldChart(appreciationData) {
+          const labels = appreciationData.map((d) => d.year);
+          const dataPoints = appreciationData.map((d) => d.rate.toFixed(2)); // Round to 2 decimal places
+
+          if (goldChartInstance) {
+            goldChartInstance.destroy(); // Destroy existing chart before creating a new one
+          }
+
+          goldChartInstance = new Chart(goldChartCanvas, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Annual Gold Appreciation Rate (%)",
+                  data: dataPoints,
+                  borderColor: "rgb(251, 191, 36)" /* Tailwind yellow-400 */,
+                  backgroundColor: "rgba(251, 191, 36, 0.2)",
+                  tension: 0.3,
+                  fill: true,
+                  pointRadius: 5,
+                  pointBackgroundColor: "rgb(251, 191, 36)",
+                  pointBorderColor: "#fff",
+                  pointHoverRadius: 7,
+                  pointHoverBackgroundColor: "rgb(251, 191, 36)",
+                  pointHoverBorderColor: "rgb(255, 255, 255)",
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false, // Allow canvas to resize based on container
+              plugins: {
+                title: {
+                  display: true,
+                  text: "Estimated Annual Gold Price Appreciation (LKR)",
+                  font: {
+                    size: 16,
+                    weight: "bold",
+                  },
+                  color: "#333",
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return (
+                        context.dataset.label + ": " + context.parsed.y + "%"
+                      );
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Year",
+                    color: "#555",
+                  },
+                  grid: {
+                    display: false,
+                  },
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: "Appreciation Rate (%)",
+                    color: "#555",
+                  },
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function (value) {
+                      return value + "%";
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        /**
+         * Renders the historical interest rate chart.
+         * @param {Array<Object>} interestRateData - Data containing year and interest rate.
+         */
+        function renderInterestRateChart(interestRateData) {
+          const labels = interestRateData.map((d) => d.year);
+          const dataPoints = interestRateData.map((d) => d.rate.toFixed(2)); // Round to 2 decimal places
+
+          if (interestRateChartInstance) {
+            interestRateChartInstance.destroy(); // Destroy existing chart before creating a new one
+          }
+
+          interestRateChartInstance = new Chart(interestRateChartCanvas, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Average Deposit Interest Rate (%)",
+                  data: dataPoints,
+                  borderColor: "rgb(16, 185, 129)" /* Tailwind green-500 */,
+                  backgroundColor: "rgba(16, 185, 129, 0.2)",
+                  tension: 0.3,
+                  fill: true,
+                  pointRadius: 5,
+                  pointBackgroundColor: "rgb(16, 185, 129)",
+                  pointBorderColor: "#fff",
+                  pointHoverRadius: 7,
+                  pointHoverBackgroundColor: "rgb(16, 185, 129)",
+                  pointHoverBorderColor: "rgb(255, 255, 255)",
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false, // Allow canvas to resize based on container
+              plugins: {
+                title: {
+                  display: true,
+                  text: "Historical Average Deposit Interest Rates (Sri Lanka)",
+                  font: {
+                    size: 16,
+                    weight: "bold",
+                  },
+                  color: "#333",
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return (
+                        context.dataset.label + ": " + context.parsed.y + "%"
+                      );
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  title: {
+                    display: true,
+                    text: "Year",
+                    color: "#555",
+                  },
+                  grid: {
+                    display: false,
+                  },
+                },
+                y: {
+                  title: {
+                    display: true,
+                    text: "Interest Rate (%)",
+                    color: "#555",
+                  },
+                  beginAtZero: false,
+                  ticks: {
+                    callback: function (value) {
+                      return value + "%";
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        // Event listener for the calculate button
+        calculateBtn.addEventListener("click", () => {
+          const investmentAmount = parseFloat(investmentAmountInput.value);
+          const investmentYears = parseInt(investmentYearsInput.value);
+
+          // Input validation
+          if (isNaN(investmentAmount) || investmentAmount <= 0) {
+            showMessage(
+              "Please enter a valid investment amount (a positive number)."
+            );
+            return;
+          }
+          if (isNaN(investmentYears) || investmentYears <= 0) {
+            showMessage(
+              "Please enter a valid investment duration (a positive number of years)."
+            );
+            return;
+          }
+
+          messageBox.classList.add("hidden"); // Hide any previous error messages
+
+          // Calculate FD Return
+          const fdMaturityAmount = calculateFD(
+            investmentAmount,
+            investmentYears,
+            avgFdRate
+          );
+          const fdTotalInterest = fdMaturityAmount - investmentAmount;
+          const fdReturnPercentage = (fdTotalInterest / investmentAmount) * 100;
+
+          fdResult.innerHTML = `
+                    <p>Maturity Amount: <strong>LKR ${fdMaturityAmount.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}</strong></p>
+                    <p>Total Interest Earned: <strong>LKR ${fdTotalInterest.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}</strong></p>
+                    <p>Return Percentage: <strong class="text-blue-800">${fdReturnPercentage.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}%</strong></p>
+                `;
+
+          // Calculate Gold Return
+          const goldMaturityValue = calculateGold(
+            investmentAmount,
+            investmentYears,
+            avgGoldAppreciationRate
+          );
+          const goldTotalGain = goldMaturityValue - investmentAmount;
+          const goldReturnPercentage = (goldTotalGain / investmentAmount) * 100;
+
+          goldResult.innerHTML = `
+                    <p>Estimated Value: <strong>LKR ${goldMaturityValue.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}</strong></p>
+                    <p>Estimated Total Gain: <strong>LKR ${goldTotalGain.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}</strong></p>
+                    <p>Return Percentage: <strong class="text-yellow-800">${goldReturnPercentage.toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}%</strong></p>
+                `;
+
+          // Render the gold appreciation chart
+          const annualAppreciationRates =
+            calculateAnnualGoldAppreciation(historicalGoldData);
+          renderGoldChart(annualAppreciationRates);
+
+          // Render the interest rate chart
+          renderInterestRateChart(historicalInterestRateData);
+        });
+
+        // Initial calculation and chart rendering with default values on load
+        calculateBtn.click();
+      });
+    </script>
+  </body>
+</html>
